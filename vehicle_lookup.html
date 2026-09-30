@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vehicle Lookup</title>
+  <style>
+    :root {
+      --bg: #1a0d0d;
+      --bg-2: #2a120d;
+      --panel: #1d0f0c;
+      --panel-2: #2d1712;
+      --primary: #ff6b35;
+      --primary-2: #ff3d2e;
+      --primary-soft: rgba(255, 107, 53, 0.18);
+      --text: #fff3ef;
+      --muted: #f4b7a6;
+      --success: #ffc857;
+      --danger: #ff7a5c;
+      --warning: #ffb347;
+      --border: rgba(255, 157, 110, 0.22);
+      --shadow: 0 24px 65px rgba(94, 22, 3, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at top, rgba(255, 109, 74, 0.26), transparent 30%),
+                  linear-gradient(135deg, var(--bg) 0%, var(--bg-2) 100%);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      padding: 20px;
+    }
+
+    .card {
+      width: min(100%, 820px);
+      background: rgba(29, 15, 12, 0.86);
+      border: 1px solid var(--border);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 110, 53, 0.08), transparent 35%, rgba(255, 61, 46, 0.08));
+      pointer-events: none;
+    }
+
+    .topbar {
+      background: linear-gradient(135deg, var(--primary-2), var(--primary));
+      padding: 28px 24px 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .topbar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.12) 45%, transparent 100%);
+      transform: translateX(-100%);
+      animation: shimmer 4s infinite;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: clamp(1.9rem, 3vw, 2.6rem);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar p {
+      margin: 10px 0 0;
+      color: rgba(255,255,255,0.9);
+      font-size: 0.96rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .body {
+      padding: 28px 24px 24px;
+    }
+
+    form {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    input {
+      flex: 1 1 260px;
+      min-width: 0;
+      padding: 15px 16px;
+      font-size: 1rem;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(38, 17, 13, 0.95);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    input:focus {
+      border-color: rgba(255, 153, 106, 0.75);
+      box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.12);
+      transform: translateY(-1px);
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 15px 22px;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      color: white;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      box-shadow: 0 10px 25px rgba(255, 93, 38, 0.35);
+    }
+
+    button:hover {
+      transform: translateY(-1px) scale(1.01);
+      box-shadow: 0 16px 32px rgba(255, 93, 38, 0.5);
+    }
+
+    button:disabled { opacity: 0.78; cursor: not-allowed; }
+
+    .status {
+      min-height: 28px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(20, 12, 10, 0.9);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-bottom: 18px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+
+    .status.show {
+      display: flex;
+    }
+
+    .status.success {
+      color: #ffd9a5;
+      border-color: rgba(255, 184, 71, 0.5);
+      background: rgba(255, 145, 61, 0.08);
+    }
+
+    .status.error {
+      color: #ffd7c7;
+      border-color: rgba(255, 130, 98, 0.5);
+      background: rgba(255, 79, 49, 0.08);
+    }
+
+    .status.loading {
+      color: #ffd6a3;
+      border-color: rgba(255, 171, 79, 0.45);
+      background: rgba(255, 119, 58, 0.08);
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    .result-box {
+      display: none;
+      background: rgba(18, 11, 10, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      animation: fadeInUp 0.4s ease;
+    }
+
+    .result-box.show { display: block; }
+
+    .meta {
+      font-size: 1rem;
+      margin-bottom: 16px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .vehicle-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .vehicle-item {
+      background: linear-gradient(135deg, rgba(52, 23, 17, 0.92), rgba(43, 18, 13, 0.9));
+      border: 1px solid rgba(255, 148, 110, 0.28);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+
+    .vehicle-item h3 {
+      margin: 0 0 10px;
+      font-size: 1.12rem;
+      color: #ffe2d2;
+      letter-spacing: 0.04em;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px 18px;
+      margin-top: 8px;
+    }
+
+    .detail {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 56px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 164, 122, 0.08);
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .value {
+      font-weight: 700;
+      word-break: break-word;
+      color: #ffece4;
+    }
+
+    .empty {
+      color: var(--muted);
+      background: rgba(38, 17, 13, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes shimmer {
+      100% { transform: translateX(100%); }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .body { padding: 22px 16px 18px; }
+      form { flex-direction: column; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="topbar">
+      <h1>Vehicle Lookup</h1>
+      <p>Find linked vehicle records from a 10-digit mobile number</p>
+    </div>
+
+    <div class="body">
+      <form id="lookupForm">
+        <input id="mobileInput" type="tel" inputmode="numeric" maxlength="10" placeholder="Enter 10-digit mobile number" required />
+        <button id="searchBtn" type="submit">Search</button>
+      </form>
+
+      <div id="status" class="status"></div>
+
+      <div id="resultBox" class="result-box">
+        <div id="resultMeta" class="meta"></div>
+        <div id="vehicleList" class="vehicle-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/lookup';
+
+    const form = document.getElementById('lookupForm');
+    const mobileInput = document.getElementById('mobileInput');
+    const statusBox = document.getElementById('status');
+    const resultBox = document.getElementById('resultBox');
+    const resultMeta = document.getElementById('resultMeta');
+    const vehicleList = document.getElementById('vehicleList');
+    const searchBtn = document.getElementById('searchBtn');
+
+    function logStatus(message, type = 'info') {
+      statusBox.className = 'status show';
+      statusBox.classList.toggle('success', type === 'success');
+      statusBox.classList.toggle('error', type === 'error');
+      statusBox.classList.toggle('loading', type === 'loading');
+
+      if (type === 'loading') {
+        statusBox.innerHTML = '<span class="spinner"></span><span>' + message + '</span>';
+      } else {
+        statusBox.textContent = message;
+      }
+    }
+
+    async function lookupVehicle(mobile) {
+      const response = await fetch(`${API_BASE}?mobile=${encodeURIComponent(mobile)}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Lookup request failed');
+      }
+
+      if (!data.found) {
+        return {
+          found: false,
+          message: data.message || 'No vehicle found against this mobile number.',
+          vehicles: []
+        };
+      }
+
+      return {
+        found: true,
+        count: data.count || data.vehicles.length,
+        vehicles: data.vehicles || []
+      };
+    }
+
+    function renderVehicleList(vehicles) {
+      vehicleList.innerHTML = '';
+
+      if (!vehicles.length) {
+        vehicleList.innerHTML = '<div class="empty">No vehicles found for this mobile number.</div>';
+        return;
+      }
+
+      const fields = [
+        ['regNo', 'Registration No'],
+        ['stateCd', 'State Code'],
+        ['stateName', 'State'],
+        ['officeName', 'RTO Office'],
+        ['offCd', 'Office Code'],
+        ['regnUpto', 'Registration Upto'],
+        ['fitUpto', 'Fitness Upto'],
+        ['taxUpto', 'Tax Upto'],
+        ['insUpto', 'Insurance Upto'],
+        ['puccUpto', 'PUCC Upto'],
+        ['permitUpto', 'Permit Upto']
+      ];
+
+      vehicles.forEach((vehicle, index) => {
+        const item = document.createElement('div');
+        item.className = 'vehicle-item';
+
+        const title = document.createElement('h3');
+        title.textContent = `Vehicle ${index + 1}`;
+        item.appendChild(title);
+
+        const detailGrid = document.createElement('div');
+        detailGrid.className = 'detail-grid';
+
+        fields.forEach(([key, label]) => {
+          const candidates = [
+            key,
+            label,
+            key.toLowerCase(),
+            label.toLowerCase(),
+            key.replace(/([A-Z])/g, ' $1').trim(),
+            label.replace(/\s+/g, '').toLowerCase()
+          ];
+
+          let value = '';
+          for (const candidate of candidates) {
+            if (vehicle && Object.prototype.hasOwnProperty.call(vehicle, candidate)) {
+              value = vehicle[candidate];
+              break;
+            }
+          }
+
+          if (value === null || value === undefined || value === '') return;
+
+          const detail = document.createElement('div');
+          detail.className = 'detail';
+
+          const labelEl = document.createElement('div');
+          labelEl.className = 'label';
+          labelEl.textContent = label;
+
+          const valueEl = document.createElement('div');
+          valueEl.className = 'value';
+          valueEl.textContent = value;
+
+          detail.appendChild(labelEl);
+          detail.appendChild(valueEl);
+          detailGrid.appendChild(detail);
+        });
+
+        item.appendChild(detailGrid);
+        vehicleList.appendChild(item);
+      });
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const mobile = mobileInput.value.replace(/\D/g, '').trim();
+
+      if (mobile.length !== 10) {
+        logStatus('Please enter exactly 10 digits.', 'error');
+        resultBox.classList.remove('show');
+        return;
+      }
+
+      searchBtn.disabled = true;
+      logStatus('Searching... please wait', 'loading');
+      resultBox.classList.remove('show');
+
+      try {
+        const data = await lookupVehicle(mobile);
+
+        if (!data.found) {
+          resultBox.classList.add('show');
+          resultMeta.textContent = `Mobile: ${mobile}`;
+          vehicleList.innerHTML = `<div class="empty">${data.message}</div>`;
+          logStatus(`No vehicles found for ${mobile}`, 'success');
+          return;
+        }
+
+        resultMeta.textContent = `Mobile: ${mobile} • ${data.count} vehicle(s) found`;
+        renderVehicleList(data.vehicles);
+        resultBox.classList.add('show');
+        logStatus(`Found ${data.count} vehicle record(s) for ${mobile}`, 'success');
+      } catch (error) {
+        resultBox.classList.remove('show');
+        logStatus(error.message || 'Something went wrong.', 'error');
+      } finally {
+        searchBtn.disabled = false;
+      }
+    });
+
+    mobileInput.addEventListener('input', () => {
+      mobileInput.value = mobileInput.value.replace(/\D/g, '').slice(0, 10);
+    });
+  </script>
+</body>
+</html>
